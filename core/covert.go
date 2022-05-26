@@ -6,6 +6,16 @@ import (
 	"strconv"
 )
 
+//Byte2Bits Byte2Bits
+func Byte2Bits(data byte) []int {
+	dst := make([]int, 0)
+	for i := 0; i < 8; i++ {
+		move := uint(7 - i)
+		dst = append(dst, int((data>>move)&1))
+	}
+	return dst
+}
+
 //ConvertToBufer ConvertToBufer
 func ConvertToBufer(content interface{}) []byte {
 	var contentBuffer []byte

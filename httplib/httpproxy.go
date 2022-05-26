@@ -194,7 +194,7 @@ func (h *HttpProxy) PostMessages(requestURL string, content interface{}, timeout
 		if err == nil {
 			defer resp.Body.Close()
 			bufferResult, err = ioutil.ReadAll(resp.Body)
-			if err != nil {
+			if resp.StatusCode != http.StatusOK {
 				err = errors.New(string(bufferResult))
 			}
 		}

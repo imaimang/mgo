@@ -99,6 +99,10 @@ func (h *HttpProxy) GetMessage(url string, params url.Values) ([]byte, error) {
 			buffer, err = ioutil.ReadAll(resp.Body)
 			if err != nil {
 				err = errors.New(string(buffer))
+			} else {
+				if resp.StatusCode != http.StatusOK {
+					err = errors.New(string(buffer))
+				}
 			}
 		}
 	}

@@ -24,3 +24,10 @@ func Encrypt32MD5(content string) string {
 	h.Write([]byte(content))
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+//Encrypt32MD5 Encrypt32MD5
+func Encrypt64MD5(content string) string {
+	h := md5.New()
+	h.Write([]byte(content))
+	return hex.EncodeToString(h.Sum(nil))
+}

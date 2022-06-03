@@ -8,6 +8,7 @@ import (
 	"github.com/imaimang/mgo/dblib"
 	"github.com/imaimang/mgo/httplib"
 	"github.com/imaimang/mgo/logs"
+	"github.com/imaimang/mgo/process"
 	"gorm.io/gorm"
 )
 
@@ -41,4 +42,9 @@ func NewHttpProxy(ip string, port int) *httplib.HttpProxy {
 //user:pwd@tcp(ip:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 func NewMysql(dbAddress string) (*gorm.DB, error) {
 	return dblib.NewMysql(dbAddress)
+}
+
+//set process name
+func SetProcessName(name string) {
+	process.SetProcessName(name)
 }

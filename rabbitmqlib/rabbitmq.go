@@ -25,7 +25,7 @@ func (r *RabbitMqProxy) ReceiveQueryMessage(queueName string, messageReceived fu
 		defer r.con.CloseChannel(channelItem)
 		var queue amqp.Queue
 		args := amqp.Table{}
-		args["x-message-ttl"] = 5000
+		args["x-message-ttl"] = 30000
 		queue, err = channelItem.CH.QueueDeclare(queueName, false, true, false, false, args)
 		if err == nil {
 			err = channelItem.CH.Qos(
@@ -54,7 +54,7 @@ func (r *RabbitMqProxy) SendQueryMessage(queueName string, datas []byte) error {
 	defer r.con.CloseChannel(channelItem)
 
 	args := amqp.Table{}
-	args["x-message-ttl"] = 5000
+	args["x-message-ttl"] = 30000
 	_, err = channelItem.CH.QueueDeclare(queueName, false, true, false, false, args)
 	if err != nil {
 		return err

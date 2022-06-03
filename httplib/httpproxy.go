@@ -24,6 +24,7 @@ func (h *HttpProxy) GetBaseUrl() string {
 	return h.baseUrl
 }
 
+//SetBaseUrl http://localhost:80
 func (h *HttpProxy) SetBaseUrl(url string) {
 	if !strings.HasSuffix(url, "/") {
 		h.baseUrl = url + "/"
@@ -247,5 +248,33 @@ func (h *HttpProxy) UploadFile(url string, fileName string, datas []byte) error 
 		_, err := http.DefaultClient.Do(req)
 		return err
 	}
+	return err
+}
+
+//Transport Transport
+func (h *HttpProxy) ForwardRequest(responseRaw *Response, requestRaw *Request) error {
+	request, err := http.NewRequest("POST", h.joinUrl(requestRaw.RequestURI), requestRaw.Body)
+	if err == nil {
+		request.Header = requestRaw.Header
+		httpClient := new(http.Client)
+		var response *http.Response
+		response, err = httpClient.Do(request)
+		if err == nil {
+			for key, value := range response.Header {
+				if len(value) > 0 {
+					responseRaw.Header().Add(key, value[0])
+				} else {
+					responseRaw.Header().Add(key, "")
+				}
+			}
+			responseRaw.ResponseWriter.WriteHeader(response.StatusCode)
+			var buffer []byte
+			buffer, err = ioutil.ReadAll(response.Body)
+			if err == nil {
+				_, err = responseRaw.ResponseWriter.Write(buffer)
+			}
+		}
+	}
+
 	return err
 }

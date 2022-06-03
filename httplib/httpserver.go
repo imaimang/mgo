@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -16,11 +15,7 @@ import (
 //HTTPServer HTTPServer
 type HTTPServer struct {
 	AllowOrigin []string
-	handles     map[string]*Handle
-	handlesList []string
-
-	handlesFile     map[string]*Handle
-	handlesListFile []string
+	handlesList []*Handle
 
 	server *http.Server
 
@@ -39,7 +34,6 @@ func (h *HTTPServer) AddCORS(urls ...string) {
 
 //StartServer StartServer
 func (h *HTTPServer) StartServer(port int) error {
-
 	h.controlContext, h.controlCancel = context.WithCancel(context.Background())
 	h.server = &http.Server{Addr: ":" + strconv.Itoa(port), Handler: h}
 
@@ -92,19 +86,11 @@ func (h *HTTPServer) checkCORS(w http.ResponseWriter, r *http.Request) bool {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.checkCORS(w, r) {
 		urlPath := strings.ToLower(r.URL.Path)
-		if strings.LastIndex(urlPath, "/") == len(urlPath)-1 {
-			urlPath = strings.TrimRight(urlPath, "/")
-		}
-		handle, ok := h.handles[urlPath]
-		if !ok {
-			handle, ok = h.handlesFile[urlPath]
-			if !ok {
-				for _, value := range h.handlesListFile {
-					if strings.HasPrefix(urlPath, value) {
-						handle = h.handlesFile[value]
-						break
-					}
-				}
+		var handle *Handle
+		for _, item := range h.handlesList {
+			if item.Path == urlPath || (strings.Index(urlPath, item.Path) == 0 && item.MatchStart) {
+				handle = item
+				break
 			}
 		}
 		if handle != nil {
@@ -129,36 +115,34 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 //sort sort
-func (h *HTTPServer) sort(key string, handlesList []string) []string {
-
-	n := len(handlesList)
-	i := sort.Search(n, func(i int) bool {
-		return len(handlesList[i]) < len(key)
-	})
-	if i == n {
-		handlesList = append(handlesList, key)
-		return handlesList
+func (h *HTTPServer) sort(key *Handle, handlesList []*Handle) []*Handle {
+	index := 0
+	for i, item := range h.handlesList {
+		if len(key.Path) > len(item.Path) {
+			index = i
+			break
+		}
 	}
-	var newHandleList []string
-	newHandleList = append(newHandleList, handlesList[0:i]...)
+	var newHandleList []*Handle
+	newHandleList = append(newHandleList, h.handlesList[0:index]...)
 	newHandleList = append(newHandleList, key)
-	newHandleList = append(newHandleList, handlesList[i:]...)
+	newHandleList = append(newHandleList, h.handlesList[index:]...)
 	return newHandleList
 }
 
 func (h *HTTPServer) registerHandle(url string, callBackHandle CallBackHandle, needLogin bool) {
-	if h.handles == nil {
-		h.handles = make(map[string]*Handle)
+	if url == "" {
+		return
 	}
-	if strings.LastIndex(url, "/") == len(url)-1 {
-		url = strings.TrimRight(url, "/")
-	}
-
 	handle := new(Handle)
 	handle.NeedLogin = needLogin
 	handle.CallBackHandle = callBackHandle
-	h.handles[strings.ToLower(url)] = handle
-	h.handlesList = h.sort(url, h.handlesList)
+	if url[len(url)-1] == '*' {
+		url = url[:len(url)-1]
+		handle.MatchStart = true
+	}
+	handle.Path = strings.ToLower(url)
+	h.handlesList = h.sort(handle, h.handlesList)
 }
 
 //RegisterHandle RegisterHandle
@@ -173,31 +157,20 @@ func (h *HTTPServer) RegisterHandleAuth(url string, callBackHandle CallBackHandl
 
 //RegisterWebSocket RegisterWebSocket
 func (h *HTTPServer) RegisterWebSocket(url string, handle websocket.Handler) {
-	if h.handles == nil {
-		h.handles = make(map[string]*Handle)
-	}
-	if strings.LastIndex(url, "/") == len(url)-1 {
-		url = strings.TrimRight(url, "/")
-	}
 	handleVar := new(Handle)
 	handleVar.NeedLogin = false
 	handleVar.Handler = handle
-	h.handles[strings.ToLower(url)] = handleVar
-	h.handlesList = h.sort(url, h.handlesList)
+	handleVar.Path = strings.ToLower(url)
+	h.handlesList = h.sort(handleVar, h.handlesList)
 }
 
 func (h *HTTPServer) registerVirtualPath(virtualPath, localPath string, needLogin bool) {
-	if h.handlesFile == nil {
-		h.handlesFile = make(map[string]*Handle)
-	}
-
 	fileHandle := http.StripPrefix(virtualPath, http.FileServer(http.Dir(localPath)))
-
 	handle := new(Handle)
 	handle.NeedLogin = needLogin
 	handle.Handler = fileHandle
-	h.handlesFile[strings.ToLower(virtualPath)] = handle
-	h.handlesListFile = h.sort(virtualPath, h.handlesListFile)
+	handle.Path = strings.ToLower(virtualPath)
+	h.handlesList = h.sort(handle, h.handlesList)
 }
 
 //RegisterVirtualPath RegisterVirtualPath
@@ -212,9 +185,6 @@ func (h *HTTPServer) RegisterVirtualPathAuth(virtualPath, localPath string) {
 
 //RegisterVirtualPath RegisterVirtualPath
 func (h *HTTPServer) RegisterFS(virtualPath string, embedPath string, f fs.FS) {
-	if h.handlesFile == nil {
-		h.handlesFile = make(map[string]*Handle)
-	}
 	handle := http.FileServer(http.FS(f))
 	fileHandle := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, virtualPath)
@@ -235,6 +205,6 @@ func (h *HTTPServer) RegisterFS(virtualPath string, embedPath string, f fs.FS) {
 	handleVar := new(Handle)
 	handleVar.NeedLogin = false
 	handleVar.Handler = fileHandle
-	h.handlesFile[strings.ToLower(virtualPath)] = handleVar
-	h.handlesListFile = h.sort(virtualPath, h.handlesListFile)
+	handleVar.Path = strings.ToLower(virtualPath)
+	h.handlesList = h.sort(handleVar, h.handlesList)
 }

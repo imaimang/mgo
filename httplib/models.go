@@ -13,6 +13,8 @@ type Handle struct {
 	AuthInfo       interface{}
 	Handler        http.Handler
 	CallBackHandle CallBackHandle
+	Path           string
+	MatchStart     bool
 }
 
 func (h *Handle) handle(w http.ResponseWriter, r *http.Request, authInfo interface{}) {

@@ -273,6 +273,10 @@ func (h *HttpProxy) ForwardRequest(responseRaw *Response, requestRaw *Request) e
 			if err == nil {
 				_, err = responseRaw.ResponseWriter.Write(buffer)
 			}
+		} else {
+			buffer := []byte(err.Error())
+			responseRaw.ResponseWriter.WriteHeader(http.StatusBadRequest)
+			responseRaw.ResponseWriter.Write(buffer)
 		}
 	}
 

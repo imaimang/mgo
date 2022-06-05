@@ -1,6 +1,8 @@
 package httplib
 
-import "net/http"
+import (
+	"net/http"
+)
 
 //CallBackHandle CallBackHandle
 type CallBackHandle func(response *Response, request *Request)
@@ -19,6 +21,7 @@ type Handle struct {
 
 func (h *Handle) handle(w http.ResponseWriter, r *http.Request, authInfo interface{}) {
 	if h.Handler != nil {
+
 		h.Handler.ServeHTTP(w, r)
 	} else if h.CallBackHandle != nil {
 		response := new(Response)

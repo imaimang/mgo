@@ -253,7 +253,7 @@ func (h *HttpProxy) UploadFile(url string, fileName string, datas []byte) error 
 
 //Transport Transport
 func (h *HttpProxy) ForwardRequest(responseRaw *Response, requestRaw *Request) error {
-	request, err := http.NewRequest("POST", h.joinUrl(requestRaw.RequestURI), requestRaw.Body)
+	request, err := http.NewRequest(requestRaw.Method, h.joinUrl(requestRaw.RequestURI), requestRaw.Body)
 	if err == nil {
 		request.Header = requestRaw.Header
 		httpClient := new(http.Client)
